@@ -44,32 +44,31 @@ let buildCards  (input: string) =
 
 let buildScratchCards (m: Map<int, int seq>) =
     m
-    |> Map.fold (fun ((acc: Map<int, ScratchCards>), (mAux: Map<int, int seq>)) key value ->
+    |> Map.fold (fun (acc: Map<int, ScratchCards>) key value ->
         if acc.ContainsKey key then
             let v = acc.[key]
-            let scratch = { v with MatchesNum=Seq.append v.MatchesNum value; TotalMatches=v.TotalMatches + 1 }
+            let scratch = { v with TotalMatches=v.TotalMatches + 1 }
             let (aux: Map<int, ScratchCards>) = acc.Add(key, scratch)
             scratch.MatchesNum
-            |> Seq.fold (fun ((acc2: Map<int, ScratchCards>), (m2: Map<int, int seq>)) x ->
+            |> Seq.fold (fun (acc2: Map<int, ScratchCards>) x ->
                 if acc2.ContainsKey x then
                     let s = acc2.[x]
-                    ((acc2.Add(x, {s with TotalMatches=s.TotalMatches + 1; MatchesNum=Seq.append s.MatchesNum m2.[x]})), m2)
+                    acc2.Add(x, {s with TotalMatches=s.TotalMatches + scratch.TotalMatches;})
                 else
-                    ((acc2.Add(x, {TotalMatches=1; MatchesNum=m2.[x]})), m2)
-            ) (aux, mAux)
+                    (acc2.Add(x, {TotalMatches=v.TotalMatches; MatchesNum=m.[x]}))
+            ) aux 
         else
             let scratch = {MatchesNum=value;TotalMatches=1}
             let (aux: Map<int, ScratchCards>) = acc.Add(key, scratch)
             scratch.MatchesNum
-            |> Seq.fold (fun ((acc2: Map<int, ScratchCards>), (m2: Map<int, int seq>)) x ->
+            |> Seq.fold (fun (acc2: Map<int, ScratchCards>) x ->
                 if acc2.ContainsKey x then
                     let s = acc2.[x]
-                    ((acc2.Add(x, {s with TotalMatches=s.TotalMatches + 1; MatchesNum=Seq.append s.MatchesNum m2.[x]})), m2)
+                    (acc2.Add(x, {s with TotalMatches=s.TotalMatches * scratch.TotalMatches}))
                 else
-                    ((acc2.Add(x, {TotalMatches=1; MatchesNum=m2.[x]})), m2)
-            ) (aux, mAux)
-        ) (Map.empty, m)
-    |> (fun (x, y) -> x)
+                    (acc2.Add(x, {TotalMatches=1; MatchesNum=m.[x]}))
+            ) aux
+        ) Map.empty
 
 let result2 =
     input
@@ -77,7 +76,8 @@ let result2 =
     |> Seq.fold (fun (acc: Map<int, int seq>) x ->
         Map.fold (fun ac key value -> Map.add key value ac) x acc) Map.empty
     |> buildScratchCards
-    |> Map.fold (fun acc (k: int) (v: ScratchCards) -> acc + v.TotalMatches) 0
+    |> Map.fold (fun acc (k: int) (v: ScratchCards) ->
+        acc + v.TotalMatches) 0
 
 printfn "Result part 2: %i" result2
 Console.ReadKey() |> ignore
