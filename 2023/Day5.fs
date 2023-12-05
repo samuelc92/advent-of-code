@@ -10,6 +10,13 @@ let sources =
     |> (fun x -> x.Split([| ':' |])[1])
     |> (fun x -> x.Split([| ' ' |], StringSplitOptions.RemoveEmptyEntries))
     |> Seq.map int64
+    |> Seq.chunkBySize 2
+    |> Seq.fold (fun acc x ->
+        let a = x[0]
+        let b = int x[1]
+        let f = Seq.init b (fun v -> int64 v + a)
+        Seq.append acc f) []
+    |> Seq.toList
 
 let getNumber (lines: string list) (source: int64) =
     lines
@@ -37,6 +44,6 @@ let getLocationNumber input source =
         if c > (Seq.length i) then s else loop s c i
     loop source 2 input
 
-let locations = getLocationNumber input sources |> Seq.toList
+let locations = getLocationNumber input sources 
 printfn "Result part 1: %i" (Seq.min locations) 
 Console.ReadKey() |> ignore
