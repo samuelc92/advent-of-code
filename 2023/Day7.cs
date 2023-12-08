@@ -1,67 +1,92 @@
 ﻿var input = File.ReadAllLines("input.txt").ToList();
 
+IEnumerable<TypeOfHands> typesOfHands = [TypeOfHands.FIVE_KIND, TypeOfHands.FOUR_KIND, TypeOfHands.FULL_HOUSE, TypeOfHands.THREE_KIND, TypeOfHands.TWO_PAIR, TypeOfHands.ONE_PAIR, TypeOfHands.HIGH_CARD];
+var CardsWeight = new Dictionary<string, int>
+{
+    { "T", 10 },
+    { "J", 11 },
+    { "Q", 12 },
+    { "K", 13 },
+    { "A", 14 },
+};
+
+var CardsWeight2 = new Dictionary<string, int>
+{
+    { "T", 10 },
+    { "J", 1 },
+    { "Q", 12 },
+    { "K", 13 },
+    { "A", 14 },
+};
+
 //PART 1
 var hands = new Dictionary<TypeOfHands, List<string>>();
 foreach(var line in input)
 {
     var hand = line.Split(" ")[0];
     var typeOfHand = GetTypeOfHand(hand);
-    AddHand(typeOfHand, line, hands);
+    AddHand(typeOfHand, line, hands, IsHandStronger);
 }
 
 var multi = input.Count;
 var result = 0;
-
-if (hands.TryGetValue(TypeOfHands.FIVE_KIND, out var valueFive))
+foreach (var type in typesOfHands)
 {
-    var r = CalculateBid(valueFive, multi);
-    result += r.Item1;
-    multi = r.Item2;
-}
-
-if (hands.TryGetValue(TypeOfHands.FOUR_KIND, out var valueFour))
-{
-    var r = CalculateBid(valueFour, multi);
-    result += r.Item1;
-    multi = r.Item2;
-}
-
-if (hands.TryGetValue(TypeOfHands.FULL_HOUSE, out var valueFull))
-{
-    var r = CalculateBid(valueFull, multi);
-    result += r.Item1;
-    multi = r.Item2;
-}
-
-if (hands.TryGetValue(TypeOfHands.THREE_KIND, out var valueThree))
-{
-    var r = CalculateBid(valueThree, multi);
-    result += r.Item1;
-    multi = r.Item2;
-}
-
-if (hands.TryGetValue(TypeOfHands.TWO_PAIR, out var valueTwo))
-{
-    var r = CalculateBid(valueTwo, multi);
-    result += r.Item1;
-    multi = r.Item2;
-}
-
-if (hands.TryGetValue(TypeOfHands.ONE_PAIR, out var valueOne))
-{
-    var r = CalculateBid(valueOne, multi);
-    result += r.Item1;
-    multi = r.Item2;
-}
-
-if (hands.TryGetValue(TypeOfHands.HIGH_CARD, out var valueHigh))
-{
-    var r = CalculateBid(valueHigh, multi);
-    result += r.Item1;
-    multi = r.Item2;
+    if (hands.TryGetValue(type, out var valueHigh))
+    {
+        var r = CalculateBid(valueHigh, multi);
+        result += r.Item1;
+        multi = r.Item2;
+    }
 }
 
 Console.WriteLine($"Result part 1: {result}");
+
+// PART 2
+var hands2 = new Dictionary<TypeOfHands, List<string>>();
+foreach(var line in input)
+{
+    var newLine = TransformJoke(line);
+    var hand = newLine.Split(" ")[0];
+    var typeOfHand = GetTypeOfHand(hand);
+    AddHand(typeOfHand, line, hands2, IsHandStronger2);
+}
+
+var multi2 = input.Count;
+var result2 = 0;
+foreach (var type in typesOfHands)
+{
+    if (hands2.TryGetValue(type, out var valueHigh))
+    {
+        var r = CalculateBid(valueHigh, multi2);
+        result2 += r.Item1;
+        multi2 = r.Item2;
+    }
+}
+
+Console.WriteLine($"Result part 2: {result2}");
+
+string TransformJoke(string hand)
+{
+    var cards = hand.Split(" ")[0];
+    var distinct = cards.Where(p => p != 'J').Distinct();
+    if (!distinct.Any())
+        return hand;
+    var c = distinct.Aggregate(("", 0),
+                                (acc, c) =>
+                                {
+                                    var auxQtd = cards.Count(p => p == c);
+                                    if (string.IsNullOrEmpty(acc.Item1)) return (c.ToString(), auxQtd);
+
+                                    var weight1 = char.IsNumber(c) ? int.Parse(c.ToString()) : CardsWeight2[c.ToString()]; 
+                                    var weight2 = char.IsNumber(char.Parse(acc.Item1)) ? int.Parse(acc.Item1) : CardsWeight[acc.Item1]; 
+
+                                    if (auxQtd > acc.Item2) return (c.ToString(), auxQtd);
+                                    else if (auxQtd == acc.Item2 && weight1 > weight2) return (c.ToString(), auxQtd);
+                                    else return acc;
+                                });
+    return cards.Replace("J", c.Item1.ToString()) + " " + hand.Split(" ")[1];
+}
 
 (int, int) CalculateBid(List<string> value, int mult)
 {
@@ -75,7 +100,7 @@ Console.WriteLine($"Result part 1: {result}");
     return (response, mult);
 }
 
-void AddHand(TypeOfHands typeOfHand, string hand, Dictionary<TypeOfHands, List<string>> hands)
+void AddHand(TypeOfHands typeOfHand, string hand, Dictionary<TypeOfHands, List<string>> hands, Func<string, string, bool> isHandStronger)
 {
     if (hands.TryGetValue(typeOfHand, out var value))
     {
@@ -84,7 +109,7 @@ void AddHand(TypeOfHands typeOfHand, string hand, Dictionary<TypeOfHands, List<s
         for (var i = 0; i < value.Count; i++)
         {
             var hand2 = value[i].Split(" ")[0];
-            if (!IsHandStronger(cards, hand2))
+            if (!isHandStronger(cards, hand2))
                 continue;
             value.Insert(i, hand);
             hasInserted = true;
@@ -98,18 +123,22 @@ void AddHand(TypeOfHands typeOfHand, string hand, Dictionary<TypeOfHands, List<s
 
 bool IsHandStronger(string hand1, string hand2)
 {
-    var cardsWeight = new Dictionary<string, int>
-    {
-        { "T", 10 },
-        { "J", 11 },
-        { "Q", 12 },
-        { "K", 13 },
-        { "A", 14 },
-    };
     for (int i = 0; i < hand1.Length; i++)
     {
-        var weight1 = char.IsNumber(hand1[i]) ? int.Parse(hand1[i].ToString()) : cardsWeight[hand1[i].ToString()]; 
-        var weight2 = char.IsNumber(hand2[i]) ? int.Parse(hand2[i].ToString()) : cardsWeight[hand2[i].ToString()]; 
+        var weight1 = char.IsNumber(hand1[i]) ? int.Parse(hand1[i].ToString()) : CardsWeight[hand1[i].ToString()]; 
+        var weight2 = char.IsNumber(hand2[i]) ? int.Parse(hand2[i].ToString()) : CardsWeight[hand2[i].ToString()]; 
+        if (weight1 == weight2) continue;
+        return weight1 > weight2; 
+    }
+    return false;
+}
+
+bool IsHandStronger2(string hand1, string hand2)
+{
+    for (int i = 0; i < hand1.Length; i++)
+    {
+        var weight1 = char.IsNumber(hand1[i]) ? int.Parse(hand1[i].ToString()) : CardsWeight2[hand1[i].ToString()]; 
+        var weight2 = char.IsNumber(hand2[i]) ? int.Parse(hand2[i].ToString()) : CardsWeight2[hand2[i].ToString()]; 
         if (weight1 == weight2) continue;
         return weight1 > weight2; 
     }
