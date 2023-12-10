@@ -28,3 +28,40 @@ while (node != "ZZZ")
 }
 
 Console.WriteLine("Result part 1: " + steps);
+
+// PART 2
+
+var startPoints = new List<string>();
+foreach (var n in network)
+{
+    var no = n.Split("=", StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+    if (no.EndsWith("A")) startPoints.Add(no);
+}
+
+var nodesSteps = new List<long>();
+
+for (var i = 0; i < startPoints.Count; i++)
+{
+    var stepsAux = 0;
+    var node2 = startPoints[i];
+    while (!node2.EndsWith("Z"))
+    {
+        var m = map[node2];
+        if (instructions[(int)stepsAux % instructions.Length] == 'L')
+            node2 = m.Item1;
+        else
+            node2 = m.Item2;
+        stepsAux++;
+    }
+    nodesSteps.Add(stepsAux);
+}
+
+Console.WriteLine("Result part 2: " + nodesSteps.Aggregate(1L, FindLCM));
+
+long FindGCD(long a, long b)
+{
+    if (a == 0 || b == 0) return Math.Max(a, b);
+    return (a % b == 0) ? b : FindGCD(b, a % b);
+}
+
+long FindLCM(long a, long b) => a * b / FindGCD(a, b);
