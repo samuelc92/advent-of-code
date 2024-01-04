@@ -24,22 +24,22 @@ let arrangements r d =
 
 // PART 2
 let arrangementsWithCache r d =
-    let cache = new Dictionary<(int * int), int>()
-    let rec loop (springs: string) damages (cache: Dictionary<(int * int), int>) i =
+    let cache = new Dictionary<(int * int), int64>()
+    let rec loop (springs: string) damages (cache: Dictionary<(int * int), int64>) i =
         if List.length damages = 0 then
-            if i < springs.Length && springs.Substring(i).Contains("#") then 0
-            else 1
-        elif i > springs.Length - 1 then 0
+            if i < springs.Length && springs.Substring(i).Contains("#") then int64 0
+            else int64 1
+        elif i > springs.Length - 1 then int64 0
         elif springs[i] = '.' then loop springs damages cache (i+1)
         elif cache.ContainsKey(i, List.length damages) then cache.GetValueOrDefault((i, List.length damages))
         else
-            let mutable result = 0
+            let mutable result = int64 0
             let damage = List.head damages
             let range = i + damage
             result <- result + if range <= springs.Length && (not (springs.Substring(i, damage).Contains('.'))) && (range = springs.Length || (not (springs[range] = '#'))) then
                                  loop springs (List.tail damages) cache (i + damage + 1)
-                               else 0
-            result <- result + if springs[i] = '?' then loop springs damages cache (i+1) else 0
+                               else int64 0
+            result <- result + if springs[i] = '?' then loop springs damages cache (i+1) else int64 0
             cache.Add((i, List.length damages), result)
             result
 
@@ -53,7 +53,7 @@ let resul2 =
         let d = a[1].Split([|','|], StringSplitOptions.RemoveEmptyEntries) |> Seq.map int |> Seq.toList
         let damages = List.fold (fun acc _ -> List.append acc d) List.empty [1..5]
         let r = arrangementsWithCache records damages 
-        acc + r) 0
+        acc + r) (int64 0)
 
 printfn "Result part 2: %i" resul2
 Console.ReadKey() |> ignore
